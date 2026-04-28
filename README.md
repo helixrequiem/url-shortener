@@ -3,67 +3,57 @@
 A fully serverless URL shortener built on AWS, managed entirely with Terraform.
 
 ## Architecture
+```text
 Browser / Mobile
-│
-▼
-S3 + CloudFront (frontend)
-│
-▼
+      │
+      ▼
+S3 + CloudFront (Frontend)
+      │
+      ▼
 API Gateway (HTTP API v2)
-│
-├── POST /shorten ──► Lambda (shorten) ──► DynamoDB
-│
-└── GET /{shortId} ──► Lambda (redirect) ──► DynamoDB
-│
-▼
-DynamoDB Streams
-│
-▼
-Lambda (analytics) ──► CloudWatch Logs
-(screenshot/architecture.png)
+      │
+      ├── POST /shorten ──► Lambda (Shorten) ──► DynamoDB
+      │
+      └── GET /{shortId} ──► Lambda (Redirect) ──► DynamoDB
+                                  │
+                                  ▼
+                          DynamoDB Streams
+                                  │
+                                  ▼
+                          Lambda (Analytics) ──► CloudWatch Logs
+```
+![Architecture Diagram](screenshot/architecture.png)
 
 ## Stack
+
 | Layer | Service |
 |-------|---------|
-| Database | DynamoDB (on-demand) |
-| Compute | AWS Lambda (Node.js 20) |
-| API | API Gateway HTTP API v2 |
-| Frontend | S3 + CloudFront |
-| Analytics | DynamoDB Streams + Lambda |
-| Monitoring | CloudWatch Alarms + Dashboard |
-| Security | API Gateway throttling + WAF |
-| IaC | Terraform |
+| **Database** | DynamoDB (On-demand) |
+| **Compute** | AWS Lambda (Node.js 20) |
+| **API** | API Gateway HTTP API v2 |
+| **Frontend** | S3 + CloudFront |
+| **Analytics** | DynamoDB Streams + Lambda |
+| **Monitoring** | CloudWatch Alarms + Dashboard |
+| **Security** | API Gateway Throttling + WAF |
+| **IaC** | Terraform |
 
 ## Project Structure
+```text
 url-shortener/
-├── infra/                      # All Terraform configuration
-│   ├── main.tf                 # Provider and backend
-│   ├── variables.tf            # Input variables
-│   ├── outputs.tf              # Output values
-│   ├── dynamo.tf               # DynamoDB table + streams
-│   ├── iam.tf                  # IAM roles and policies
-│   ├── lambda.tf               # Lambda function definitions
-│   ├── apigateway.tf           # API Gateway + throttling
-│   ├── s3.tf                   # S3 bucket + CloudFront
-│   ├── cloudwatch.tf           # Alarms + dashboard
-│   └── waf.tf                  # WAF WebACL
-├── lambdas/
-│   ├── shorten/                # POST /shorten handler
-│   │   └── index.mjs
-│   ├── redirect/               # GET /{shortId} handler
-│   │   └── index.mjs
-│   └── analytics/              # DynamoDB stream processor
-│       └── index.mjs
-├── frontend/
-│   └── index.html              # Static UI
+├── infra/                  # Terraform configuration
+│   ├── main.tf             # Providers & Backend
+│   ├── dynamo.tf           # Table & Stream config
+│   ├── lambda.tf           # Function definitions
+│   └── ...                 # API, WAF, S3, IAM
+├── lambdas/                # Node.js Handlers
+│   ├── shorten/            # POST /shorten
+│   ├── redirect/           # GET /{shortId}
+│   └── analytics/          # Stream Processor
+├── frontend/               # Static UI (index.html)
 └── README.md
+```
 
-## Frontend Example
-(screenshot/index1.png)
-(screenshot/index2.png)
-(screenshot/destination.png)
 ## Prerequisites
-
 - [Terraform](https://developer.hashicorp.com/terraform/install) v1.7+
 - [AWS CLI](https://aws.amazon.com/cli/) v2, configured with credentials
 - Node.js v18+
@@ -71,88 +61,54 @@ url-shortener/
 ## Deploy
 
 ### 1. Clone the repo
-
 ```bash
 git clone <your-repo-url>
 cd url-shortener
 ```
 
-### 2. Configure variables
-
+### 2. Package Lambda functions
+*Note: Run these from the root directory to prepare the zip files for Terraform.*
 ```bash
-cp infra/terraform.tfvars.example infra/terraform.tfvars
-# Edit terraform.tfvars with your region and settings
+zip -j lambdas/shorten.zip lambdas/shorten/index.mjs
+zip -j lambdas/redirect.zip lambdas/redirect/index.mjs
+zip -j lambdas/analytics.zip lambdas/analytics/index.mjs
 ```
 
-### 3. Package Lambda functions
-
-```bash
-cd lambdas/shorten  && zip -r shorten.zip  index.mjs && cd ../..
-cd lambdas/redirect && zip -r redirect.zip index.mjs && cd ../..
-cd lambdas/analytics && zip -r analytics.zip index.mjs && cd ../..
-```
-
-### 4. Deploy with Terraform
-
+### 3. Deploy with Terraform
 ```bash
 cd infra
+cp terraform.tfvars.example terraform.tfvars # Edit with your region/settings
 terraform init
-terraform plan
 terraform apply
 ```
 
-### 5. Get your URLs
-
+### 4. Get your URLs
 ```bash
 terraform output api_url
 terraform output cloudfront_url
 ```
 
-## API
+## API Usage
 
 ### Shorten a URL
-
 ```bash
-curl -X POST <api_url>/shorten \
+curl -X POST $(terraform output -raw api_url)/shorten \
   -H "Content-Type: application/json" \
   -d '{"originalUrl": "https://example.com/long/path", "userId": "user123"}'
 ```
 
-Response:
-```json
-{
-  "shortUrl": "https://short.example.com/xK9mPq",
-  "shortId": "xK9mPq",
-  "originalUrl": "https://example.com/long/path",
-  "createdAt": "2026-04-28T10:00:00.000Z"
-}
-```
-
 ### Follow a short URL
-
 ```bash
-curl -v <api_url>/xK9mPq
-# Returns: 302 redirect to original URL
+curl -i $(terraform output -raw api_url)/xK9mPq
+# Returns: HTTP 302 Redirect
 ```
 
-## Monitoring
+## Monitoring & Security
+- **CloudWatch:** [Dashboard Link](https://amazon.com)
+- **WAF:** Rate limiting (100 req/5min per IP) and AWS Managed Rules enabled.
+- **Throttling:** 20 req/s sustained, 50 req/s burst.
 
-Open the CloudWatch dashboard:https://ap-south-1.console.aws.amazon.com/cloudwatch/home\?region\=ap-south-1\#dashboards:name\=url-shortenerMetrics tracked: click count, Lambda invocations, errors, p50/p99 latency, API 4xx/5xx.
-(screenshot/metrics1.png)
-(screenshot/metrics2.png)
 ## Tear Down
-
 ```bash
-cd infra
 terraform destroy
 ```
-
-This removes all AWS resources created by Terraform.
-
-## Security
-
-- API Gateway throttling: 20 req/s sustained, 50 req/s burst
-- WAF: rate limiting (100 req/5min per IP), AWS managed rules (SQLi, XSS, known bad inputs)
-- S3 bucket: private, accessible only via CloudFront OAC
-- DynamoDB: encrypted at rest, point-in-time recovery enabled
-- Lambda: least-privilege IAM — only the exact DynamoDB actions needed
