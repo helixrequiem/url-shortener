@@ -16,32 +16,8 @@
 
 ## 📐 Architecture
 
-```
-Browser / Mobile
-       │
-       ▼
-S3 + CloudFront ──────────────────── (static frontend)
-       │
-       ▼
-  API Gateway (HTTP API v2)
-  + WAF (rate limit · SQLi · XSS)
-       │
-       ├── POST /shorten ──► Lambda (shorten)  ──► DynamoDB
-       │                                               │
-       └── GET  /{shortId} ──► Lambda (redirect) ──► DynamoDB
-                                                       │
-                                               DynamoDB Streams
-                                                       │
-                                                       ▼
-                                            Lambda (analytics)
-                                                       │
-                                                       ▼
-                                              CloudWatch Logs
-                                           Alarms + Dashboard
-```
-
----
-
+![Architecture](screenshot/architecture.png)
+                            
 ## 🖥️ Frontend
 
 ![Frontend — URL input form](screenshot/index1.png)
