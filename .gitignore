@@ -1,0 +1,18 @@
+# Terraform
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/terraform.tfvars
+infra/*.tfplan
+
+# Lambda build artifacts
+lambdas/**/*.zip
+node_modules/
+
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env.*
