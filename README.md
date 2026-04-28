@@ -2,7 +2,8 @@
 
 A fully serverless URL shortener built on AWS, managed entirely with Terraform.
 
-## ArchitectureBrowser / Mobile
+## Architecture
+Browser / Mobile
 │
 ▼
 S3 + CloudFront (frontend)
@@ -18,8 +19,10 @@ API Gateway (HTTP API v2)
 DynamoDB Streams
 │
 ▼
-Lambda (analytics) ──► CloudWatch Logs## Stack
+Lambda (analytics) ──► CloudWatch Logs
+(screenshot/architecture.png)
 
+## Stack
 | Layer | Service |
 |-------|---------|
 | Database | DynamoDB (on-demand) |
@@ -31,7 +34,8 @@ Lambda (analytics) ──► CloudWatch Logs## Stack
 | Security | API Gateway throttling + WAF |
 | IaC | Terraform |
 
-## Project Structureurl-shortener/
+## Project Structure
+url-shortener/
 ├── infra/                      # All Terraform configuration
 │   ├── main.tf                 # Provider and backend
 │   ├── variables.tf            # Input variables
@@ -52,7 +56,13 @@ Lambda (analytics) ──► CloudWatch Logs## Stack
 │       └── index.mjs
 ├── frontend/
 │   └── index.html              # Static UI
-└── README.md## Prerequisites
+└── README.md
+
+## Frontend Example
+(screenshot/index1.png)
+(screenshot/index2.png)
+(screenshot/destination.png)
+## Prerequisites
 
 - [Terraform](https://developer.hashicorp.com/terraform/install) v1.7+
 - [AWS CLI](https://aws.amazon.com/cli/) v2, configured with credentials
@@ -128,7 +138,8 @@ curl -v <api_url>/xK9mPq
 ## Monitoring
 
 Open the CloudWatch dashboard:https://ap-south-1.console.aws.amazon.com/cloudwatch/home\?region\=ap-south-1\#dashboards:name\=url-shortenerMetrics tracked: click count, Lambda invocations, errors, p50/p99 latency, API 4xx/5xx.
-
+(screenshot/metrics1.png)
+(screenshot/metrics2.png)
 ## Tear Down
 
 ```bash
