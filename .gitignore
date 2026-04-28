@@ -5,6 +5,7 @@ infra/terraform.tfstate
 infra/terraform.tfstate.backup
 infra/terraform.tfvars
 infra/*.tfplan
+terraform.tfstate
 
 # Lambda build artifacts
 lambdas/**/*.zip
@@ -16,3 +17,4 @@ node_modules/
 # Environment files
 .env
 .env.*
+.venv
